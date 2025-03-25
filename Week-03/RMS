@@ -1,0 +1,109 @@
+#include <stdio.h>
+#include <stdlib.h>
+#define MAX_TASKS 10
+
+typedef struct Task {
+    int id;
+    int period;
+    int execution_time;
+    int remaining_time;
+    int priority;
+    int next_arrival;
+} Task;
+
+void assign_priority(Task* tasks, int n) {
+    for (int i = 0; i < n; i++) {
+        tasks[i].priority = tasks[i].period;
+    }
+}
+
+int compare(const void* a, const void* b) {
+    Task* taskA = (Task*)a;
+    Task* taskB = (Task*)b;
+    return taskA->priority - taskB->priority;
+}
+
+void execute_task(Task* task, int* current_time) {
+    int exec_time = task->remaining_time;
+    if (exec_time > task->execution_time) {
+        exec_time = task->execution_time;
+    }
+    printf("Executing Task %d for %d time units (Time: %d -> %d)\n", task->id, exec_time, *current_time, *current_time + exec_time);
+    *current_time += exec_time;
+    task->remaining_time -= exec_time;
+    task->next_arrival += task->period;
+}
+
+int higher_priority_task_arrives(Task* tasks, int n, int current_time) {
+    for (int i = 1; i < n; i++) {
+        if (tasks[i].remaining_time > 0 && tasks[i].next_arrival <= current_time) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void RMS_Scheduling(Task* tasks, int n) {
+    int current_time = 0;
+    int completed_tasks = 0;
+
+    for (int i = 0; i < n; i++) {
+        tasks[i].remaining_time = tasks[i].execution_time;
+        tasks[i].next_arrival = 0;
+    }
+
+    while (completed_tasks < n) {
+        qsort(tasks, n, sizeof(Task), compare);
+
+        int all_idle = 1;
+        for (int i = 0; i < n; i++) {
+            if (tasks[i].remaining_time > 0 && tasks[i].next_arrival <= current_time) {
+                execute_task(&tasks[i], &current_time);
+                if (tasks[i].remaining_time == 0) {
+                    completed_tasks++;
+                }
+                all_idle = 0;
+                break;
+            }
+        }
+
+        if (all_idle) {
+            current_time++;
+        }
+
+        for (int i = 0; i < n; i++) {
+            if (tasks[i].remaining_time == 0 && current_time >= tasks[i].next_arrival) {
+                tasks[i].remaining_time = tasks[i].execution_time;
+            }
+        }
+    }
+
+    printf("All tasks completed at time %d\n", current_time);
+}
+
+int main() {
+    int num_tasks;
+    printf("Enter the number of tasks: ");
+    scanf("%d", &num_tasks);
+
+    if (num_tasks > MAX_TASKS) {
+        printf("You can only input up to %d tasks.\n", MAX_TASKS);
+        return 1;
+    }
+
+    Task tasks[MAX_TASKS];
+
+    for (int i = 0; i < num_tasks; i++) {
+        tasks[i].id = i + 1;
+        printf("Enter details for Task %d:\n", tasks[i].id);
+        printf("Enter period: ");
+        scanf("%d", &tasks[i].period);
+        printf("Enter execution time: ");
+        scanf("%d", &tasks[i].execution_time);
+    }
+
+    assign_priority(tasks, num_tasks);
+    RMS_Scheduling(tasks, num_tasks);
+
+    return 0;
+}
